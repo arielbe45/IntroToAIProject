@@ -78,8 +78,8 @@ class DQNAgent:
 
 # Initialize environment and agent
 env = QuoridorEnv()
-state_shape = env.observation_space.shape
-num_actions = env.action_space.n
+state_shape = env.state_shape
+num_actions = env.action_space
 agent = DQNAgent(state_shape, num_actions)
 episodes = 1000
 
