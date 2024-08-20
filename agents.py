@@ -20,10 +20,18 @@ class ShortestPathAgent:
     def __init__(self, player_id):
         self.player_id = player_id  # Player 1 (0) or Player 2 (1)
 
-    def act(self, state):
-        board = state[0, :, :, self.player_id]
-        player_position = np.argwhere(board == 1)[0]  # Find the player's position
+    def find_player_position(self, board):
+            for r, row in enumerate(board):
+                for c, cell in enumerate(row):
+                    if cell.get_player() == self.player_id:
+                        return (r, c)
+            raise ValueError(f"Player {self.player_id} not found on board.")
 
+
+    def act(self, state, invalid_actions):
+        player_position =self.find_player_position(state)
+        print(player_position)
+        exit(0)
         # Determine goal row based on the player ID
         goal_row = self.GOAL_ROW_P1 if self.player_id == 0 else self.GOAL_ROW_P2
 
@@ -65,10 +73,10 @@ class ShortestPathAgent:
         return 0  # Replace with actual action ID for moving up
 
     def move_down(self):
-        return 1  # Replace with actual action ID for moving down
+        return 2  # Replace with actual action ID for moving down
 
     def move_left(self):
-        return 2  # Replace with actual action ID for moving left
+        return 1  # Replace with actual action ID for moving left
 
     def move_right(self):
         return 3  # Replace with actual action ID for moving right

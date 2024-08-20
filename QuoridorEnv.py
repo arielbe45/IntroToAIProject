@@ -46,9 +46,9 @@ class QuoridorEnv():
 
     def reset(self):
         self.game = Game()
-        return self.game
+        return self.get_state()
 
-    def step(self, action, player=1):
+    def step(self, action, player):
         reward = 0
 
         # Apply action to board (this part is simplified)
@@ -97,22 +97,24 @@ class QuoridorEnv():
     def get_state(self):
         return self.game.board.encode()
 
-env = QuoridorEnv()
+# env = QuoridorEnv()
 # state_shape = env.observation_space.shape
 # num_actions = env.action_space.n
 # print(state_shape)
 # print(num_actions)
-print("invalid", env.invalid_actions(1))
-env.render()
-env.step(2, 1)
-env.render()
-env.step(0, -1)
-env.render()
-print("put wall")
-env.step(13, 1)
+# print(env.action_space)
+# print("invalid", env.invalid_actions(1))
+# env.render()
+# print()
+# env.step(3, 1)
+# env.render()
+# env.step(0, -1)
+# env.render()
+# print("put wall")
+# env.step(13, 1)
 # print(env.invalid_actions(1))
 # for action in env.invalid_actions(1):
 #     print(env.int_to_action[action])
 # print("\n")
-env.render()
-print(env.game.board.encode())
+# env.render()
+# print(env.game.board.encode())
