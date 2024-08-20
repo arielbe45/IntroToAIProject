@@ -12,6 +12,7 @@ from placeWall import PlaceWall
 from minimax import Minimax
 
 class QuoridorEnv():
+class QuoridorEnv():
     def __init__(self):
         # super(QuoridorEnv, self).__init__()
         # self.action_space = spaces.Discrete(128)  # Simplified action space
