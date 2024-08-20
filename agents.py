@@ -21,53 +21,52 @@ class ShortestPathAgent:
         self.player_id = player_id  # Player 1 (0) or Player 2 (1)
 
     def find_player_position(self, board):
-            for r, row in enumerate(board):
-                for c, cell in enumerate(row):
-                    if cell.get_player() == self.player_id:
-                        return (r, c)
-            raise ValueError(f"Player {self.player_id} not found on board.")
+        board=board[0]
+        for r, row in enumerate(board):
+            for c, cell in enumerate(row):
+                if cell == self.player_id:
+                    return (r, c)
+        raise ValueError(f"Player {self.player_id} not found on board.")
 
 
     def act(self, state, invalid_actions):
         player_position =self.find_player_position(state)
-        print(player_position)
-        exit(0)
         # Determine goal row based on the player ID
         goal_row = self.GOAL_ROW_P1 if self.player_id == 0 else self.GOAL_ROW_P2
 
         # Try to move directly towards the goal row
-        if player_position[0] < goal_row and self.can_move_down(player_position):
+        if player_position[0] < goal_row and self.can_move_down(invalid_actions):
             return self.move_down()
-        elif player_position[0] > goal_row and self.can_move_up(player_position):
+        elif player_position[0] > goal_row and self.can_move_up(invalid_actions):
             return self.move_up()
 
         # If blocked, try to move horizontally to find another path
-        if player_position[1] < self.COLS - 1 and self.can_move_right(player_position):
+        if player_position[1] < self.COLS - 1 and self.can_move_right(invalid_actions):
             return self.move_right()
-        elif player_position[1] > 0 and self.can_move_left(player_position):
+        elif player_position[1] > 0 and self.can_move_left(invalid_actions):
             return self.move_left()
 
         # If all else fails, move backwards or stay
-        if player_position[0] < goal_row and self.can_move_up(player_position):
+        if player_position[0] < goal_row and self.can_move_up(invalid_actions):
             return self.move_up()
-        elif player_position[0] > goal_row and self.can_move_down(player_position):
+        elif player_position[0] > goal_row and self.can_move_down(invalid_actions):
             return self.move_down()
         
         #should never appen
         assert False, "No valid moves available"
         return self.move_stay()
 
-    def can_move_up(self, position):
-        return position[0] > 0 and not self.wall_above(position)
+    def can_move_up(self, invalid_actions):
+        return  self.move_up() not in invalid_actions
 
-    def can_move_down(self, position):
-        return position[0] < self.ROWS - 1 and not self.wall_below(position)
+    def can_move_down(self, invalid_actions):
+        return self.move_down() not in invalid_actions
 
-    def can_move_left(self, position):
-        return position[1] > 0 and not self.wall_left(position)
+    def can_move_left(self, invalid_actions):
+        return self.move_left() not in invalid_actions
 
-    def can_move_right(self, position):
-        return position[1] < self.COLS - 1 and not self.wall_right(position)
+    def can_move_right(self, invalid_actions):
+        return self.move_right() not in invalid_actions
 
     def move_up(self):
         return 0  # Replace with actual action ID for moving up
