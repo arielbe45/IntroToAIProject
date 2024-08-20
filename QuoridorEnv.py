@@ -18,6 +18,8 @@ class QuoridorEnv():
         # self.observation_space = spaces.Box(low=0, high=1, shape=(9, 9, 2), dtype=np.float32)  # 9x9 board with two planes (players)
         self.game = Game()
         self.int_to_action = {i: value for i, value in enumerate(self.all_possible_moves())}
+        self.action_space = len(self.int_to_action)
+        self.state_shape = (17,17)
         # print(self.int_to_action)
 
     def all_possible_moves(self): # create players in the middle of an empty board and get all possible moves
@@ -63,7 +65,7 @@ class QuoridorEnv():
 
         if self.game.board.is_game_over():
             reward = self.game.board.winner  # Reward for winning
-        return self.game.board, reward, self.game.board.is_game_over(), {}
+        return self.get_state(), reward, self.game.board.is_game_over(), {}
 
     def invalid_actions(self, player):
         normelized_legal_moves = []
@@ -90,18 +92,27 @@ class QuoridorEnv():
         return list({k: v for k, v in self.int_to_action.items() if v not in normelized_legal_moves}.keys())
 
     def render(self, mode='human'):
-        self.game.display_board()
+        self.game.board.display()
+    
+    def get_state(self):
+        return self.game.board.encode()
 
 env = QuoridorEnv()
+# state_shape = env.observation_space.shape
+# num_actions = env.action_space.n
+# print(state_shape)
+# print(num_actions)
 print("invalid", env.invalid_actions(1))
 env.render()
 env.step(2, 1)
 env.render()
 env.step(0, -1)
 env.render()
-env.step(10, 1)
-print(env.invalid_actions(1))
-for action in env.invalid_actions(1):
-    print(env.int_to_action[action])
-print("\n")
+print("put wall")
+env.step(13, 1)
+# print(env.invalid_actions(1))
+# for action in env.invalid_actions(1):
+#     print(env.int_to_action[action])
+# print("\n")
 env.render()
+print(env.game.board.encode())

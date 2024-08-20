@@ -236,9 +236,9 @@ class Board:
                 cell = self.get_cell(i, j)
                 if cell.is_player():
                     if cell.get_player() == 1:
-                        print("P1", end=" ")
+                        print("P", end=" ")
                     else:
-                        print("P2", end=" ")
+                        print("p", end=" ")
                 elif cell.is_wall():
                     print("W", end=" ")
                 else:
@@ -246,20 +246,21 @@ class Board:
             print()
 
     def encode(self):
-        res=''
+        res=[]
         for i in range(17):
+            row=[]
             for j in range(17):
                 cell = self.get_cell(i, j)
                 if cell.is_player():
                     if cell.get_player() == 1:
-                        res+="P1"
+                        row.append(1)
                     else:
-                        res+="P2"
+                        row.append(-1)
                 elif cell.is_wall():
-                    res+="W"
+                    row.append(2)
                 else:
-                    res+="."
-            res+="\n"
+                    row.append(0)
+            res.append(row)
         return res            
             
     def is_game_over(self):
