@@ -11,15 +11,16 @@ from cell import Cell
 from placeWall import PlaceWall
 from minimax import Minimax
 
-class QuoridorEnv(gym.Env):
+class QuoridorEnv():
     def __init__(self):
         super(QuoridorEnv, self).__init__()
         # self.action_space = spaces.Discrete(128)  # Simplified action space
         # self.observation_space = spaces.Box(low=0, high=1, shape=(9, 9, 2), dtype=np.float32)  # 9x9 board with two planes (players)
         self.game = Game()
         self.int_to_action = {i: value for i, value in enumerate(self.all_possible_moves(1))}
-
-    def all_possible_moves(player): # create players in the middle of an empty board and get all possible moves
+        print(self.int_to_action)
+        
+    def all_possible_moves(self,player): # create players in the middle of an empty board and get all possible moves
         Y_White = 8
         Y_Black = 8
         x_White = 8
@@ -31,13 +32,14 @@ class QuoridorEnv(gym.Env):
         board.set_cell(x_Black, Y_Black, Cell(x_Black, Y_Black, black_player))
         board.add_player(white_player)
         board.add_player(black_player)
-        all_moves = board.get_all_possible_moves(player)
         if player == 1:
+            all_moves = board.get_all_possible_moves(white_player)
             for move in all_moves:
                 if move[0] == "move":
                     move[1] = move[1] - x_White
                     move[2] = move[2] - Y_White
         if player == -1:
+            all_moves = board.get_all_possible_moves(black_player)
             for move in all_moves:
                 if move[0] == "move":
                     move[1] = move[1] - x_Black
@@ -79,3 +81,6 @@ class QuoridorEnv(gym.Env):
 
     def render(self, mode='human'):
         self.game.display_board()
+        
+        
+env = QuoridorEnv()

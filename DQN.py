@@ -7,6 +7,8 @@ from tensorflow.keras.layers import Dense, Flatten
 import random
 from collections import deque
 
+import QuoridorEnv
+
 class DQNModel:
     def __init__(self, input_shape, num_actions):
         self.model = self.build_dqn(input_shape, num_actions)
