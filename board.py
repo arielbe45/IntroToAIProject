@@ -144,6 +144,49 @@ class Board:
 
         return moves
 
+
+
+    def get_all_possible_moves_without_optimize(self, player):
+        moves = []
+        directions = [(0, 2), (2, 0), (0, -2), (-2, 0)]  # Right, Down, Left, Up
+
+        for dx, dy in directions:
+            nx, ny = player.get_x() + dx, player.get_y() + dy
+            if 0 <= nx < 17 and 0 <= ny < 17:
+                neighbor = self.get_cell(nx, ny)
+                if neighbor.is_empty():
+                    if not self.wall_in_the_middle((player.get_x(), player.get_y()), (nx, ny)):
+                        moves.append(('move', nx, ny))
+                # Handle jump over player
+                elif neighbor.is_player():
+                    jump_x, jump_y = player.get_x() + 2 * dx, player.get_y() + 2 * dy
+                    if 0 <= jump_x < 17 and 0 <= jump_y < 17:
+                        jump_cell = self.get_cell(jump_x, jump_y)
+                        if jump_cell.is_empty():
+                            if not self.wall_in_the_middle((nx, ny), (jump_x, jump_y)) and not self.wall_in_the_middle((player.get_x(), player.get_y()), (nx, ny)):
+                                moves.append(('move', jump_x, jump_y))
+                        else:
+                            # Handle side jumps
+                            side_directions = [(dx, 0), (0, dy)]
+                            for sdx, sdy in side_directions:
+                                side_x, side_y = nx + sdx, ny + sdy
+                                if 0 <= side_x < 17 and 0 <= side_y < 17:
+                                    side_cell = self.get_cell(side_x, side_y)
+                                    if side_cell.is_empty() and not self.wall_in_the_middle((nx, ny), (side_x, side_y)):
+                                        moves.append(('move', side_x, side_y))
+
+            for i in range(17):
+                for j in range(17):
+                    horizontal_wall = Wall('horizontal', (i, j), 3)
+                    vertical_wall = Wall('vertical', (i, j), 3)
+                    if self.can_place_wall(horizontal_wall):
+                        moves.append(('wall', 'horizontal', i, j))
+                    if self.can_place_wall(vertical_wall):
+                        moves.append(('wall', 'vertical', i, j))
+
+        return moves
+
+
     def can_place_wall(self, wall):
         # Create a copy of the current board
         temp_board = self.copy()
