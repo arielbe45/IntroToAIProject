@@ -1,11 +1,14 @@
 import abc
 import typing
 
-from game.move import WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement
 from game.bfs import bfs_shortest_paths
+from game.move import WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement
 
 
 class AbstractGameState(abc.ABC):
+    def __init__(self):
+        self.p1_turn: bool = True
+
     def get_new_state(self, move: Move, check_legal: bool = True) -> 'AbstractGameState':
         state = self.copy()
         state.apply_move(move=move, check_legal=check_legal)
@@ -20,6 +23,17 @@ class AbstractGameState(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def p1_wins(self) -> bool:
+        pass
+
+    @abc.abstractmethod
+    def p2_wins(self) -> bool:
+        pass
+
+    def is_winner(self) -> bool:
+        return self.p1_wins() and not self.p1_turn or self.p2_wins() and self.p1_turn
+
+    @abc.abstractmethod
     def is_game_over(self) -> bool:
         pass
 
@@ -28,17 +42,17 @@ class AbstractGameState(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def apply_move(self, move: Move) -> None:
+    def apply_move(self, move: Move, check_legal: bool = True) -> None:
         pass
 
 
 class GameState(AbstractGameState):
     def __init__(self):
+        super().__init__()
         self.walls: list[WallPlacement] = []
         # In range 0 to BOARD_SIZE - 1 inclusive, top left is (0,0)
         self.player1_pos: list[int] = [int(BOARD_SIZE / 2), 0]
         self.player2_pos: list[int] = [int(BOARD_SIZE / 2), BOARD_SIZE - 1]
-        self.p1_turn: bool = True
 
     def copy(self):
         state = GameState()
@@ -142,12 +156,14 @@ class GameState(AbstractGameState):
 
         # Check if move does not prevent players to reach other side
         new_state = self.get_new_state(move=move, check_legal=False)
-        bfs_result = bfs_shortest_paths(start_node=tuple(self.player1_pos), get_free_neighbors=new_state.get_free_neighbor_tiles)
+        bfs_result = bfs_shortest_paths(start_node=tuple(self.player1_pos),
+                                        get_free_neighbors=new_state.get_free_neighbor_tiles)
         winning_tiles = [(x, BOARD_SIZE - 1) for x in range(BOARD_SIZE)]
         if not any(tile in bfs_result for tile in winning_tiles):
             return False
 
-        bfs_result = bfs_shortest_paths(start_node=tuple(self.player2_pos), get_free_neighbors=new_state.get_free_neighbor_tiles)
+        bfs_result = bfs_shortest_paths(start_node=tuple(self.player2_pos),
+                                        get_free_neighbors=new_state.get_free_neighbor_tiles)
         winning_tiles = [(x, 0) for x in range(BOARD_SIZE)]
         if not any(tile in bfs_result for tile in winning_tiles):
             return False
@@ -173,12 +189,10 @@ class GameState(AbstractGameState):
         self.p1_turn = not self.p1_turn
 
     def is_game_over(self) -> bool:
-        # Player 1 wins by reaching the rightmost column
-        if self.player1_pos[1] == BOARD_SIZE - 1:
-            return True
+        return self.p1_wins() or self.p2_wins()
 
-        # Player 2 wins by reaching the leftmost column
-        if self.player2_pos[1] == 0:
-            return True
+    def p1_wins(self) -> bool:
+        return self.player1_pos[1] == BOARD_SIZE - 1
 
-        return False
+    def p2_wins(self) -> bool:
+        return self.player2_pos[1] == 0
