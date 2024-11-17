@@ -78,9 +78,10 @@ class GameState(AbstractGameState):
             if self.check_wall_collision(pos=pos, move=move):
                 continue
 
+            # REMOVED: fixed bug
             # Check if the new position is already occupied by a player
-            if new_pos == self.player1_pos or new_pos == self.player2_pos:
-                continue  # Tile is occupied
+            # if new_pos == self.player1_pos or new_pos == self.player2_pos:
+            #     continue  # Tile is occupied
 
             free_tiles.append(tuple(new_pos))
         return free_tiles
@@ -192,7 +193,13 @@ class GameState(AbstractGameState):
         return self.p1_wins() or self.p2_wins()
 
     def p1_wins(self) -> bool:
-        return self.player1_pos[1] == BOARD_SIZE - 1
+        return self.player1_pos[1] == BOARD_SIZE - 1 or (not self.p1_turn and not self.has_legal_moves())
 
     def p2_wins(self) -> bool:
-        return self.player2_pos[1] == 0
+        return self.player2_pos[1] == 0 or (self.p1_turn and not self.has_legal_moves())
+
+    def has_legal_moves(self) -> bool:
+        for move in ALL_MOVES:
+            if self.is_move_legal(move=move):
+                return True
+        return False
