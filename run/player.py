@@ -23,22 +23,29 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         self.heuristic_evaluation = heuristic_evaluation
 
     def get_next_move(self, state: GameState) -> Move:
-        """Decides the best move using the minimax algorithm."""
+        """Decides the best move using the minimax algorithm with alpha-beta pruning."""
         best_move = None
         best_value = -math.inf
+        alpha = -math.inf
+        beta = math.inf
 
+        # Iterate over all legal moves
         for move in state.get_legal_moves():
             new_state = state.get_new_state(move)
-            move_value = self.minimax(new_state, self.depth, False)
+            move_value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False)
 
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
 
+            # Update alpha
+            alpha = max(alpha, best_value)
+
         return best_move
 
-    def minimax(self, state: GameState, depth: int, maximizing_player: bool) -> int:
-        """Minimax algorithm with depth limit."""
+    def alphabeta(self, state: GameState, depth: int, alpha: float, beta: float, maximizing_player: bool) -> int:
+        """Alpha-beta pruning algorithm with depth limit."""
+        # Base case: return the heuristic value if depth is 0 or the game is over
         if depth == 0 or state.is_game_over():
             return self.heuristic_evaluation(state)
 
@@ -46,15 +53,21 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
             max_eval = -math.inf
             for move in state.get_legal_moves():
                 new_state = state.get_new_state(move)
-                eval_value = self.minimax(new_state, depth - 1, False)
+                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, False)
                 max_eval = max(max_eval, eval_value)
+                alpha = max(alpha, eval_value)
+                if beta <= alpha:
+                    break  # Beta cut-off
             return max_eval
         else:
             min_eval = math.inf
             for move in state.get_legal_moves():
                 new_state = state.get_new_state(move)
-                eval_value = self.minimax(new_state, depth - 1, True)
+                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, True)
                 min_eval = min(min_eval, eval_value)
+                beta = min(beta, eval_value)
+                if beta <= alpha:
+                    break  # Alpha cut-off
             return min_eval
 
     def heuristic_evaluation(self, state: GameState) -> int:

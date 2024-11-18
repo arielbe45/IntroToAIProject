@@ -26,5 +26,5 @@ def player_vs_ai(ai_player: AbstractQuoridorPlayer):
 
 if __name__ == '__main__':
     # player_vs_player()
-    player_vs_ai(MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=0))
+    player_vs_ai(MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=1))
     # player_vs_ai(RandomQuoridorPlayer())
