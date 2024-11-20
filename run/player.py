@@ -48,7 +48,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         """Alpha-beta pruning algorithm with depth limit."""
         # Base case: return the heuristic value if depth is 0 or the game is over
         if depth == 0 or state.is_game_over():
-            return self.heuristic_evaluation(state,self.player)
+            return self.heuristic_evaluation(state, self.player)
 
         if maximizing_player:
             max_eval = -math.inf
@@ -174,7 +174,16 @@ def edge_avoidance_heuristic(state: GameState, player=2) -> int:
     return player1_edge_distance - player2_edge_distance
 
 
-# heuristic 8 - combine these heuristics into a weighted formula for evaluation:
+# heuristic 8 - pure distance to the winning tiles
+def straight_dist(state: GameState, player=2) -> int:
+    dist1 = BOARD_SIZE - 1 - state.player1_pos[1]
+    dist2 = state.player2_pos[1]
+    if player == 1:
+        return dist2 - dist1
+    return dist1 - dist2
+
+
+# heuristic 9 - combine these heuristics into a weighted formula for evaluation:
 def combined_heuristic(state: GameState, player=2) -> int:
     return (
             distance_to_end_heuristic(state, player) +
