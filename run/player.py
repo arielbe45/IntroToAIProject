@@ -175,7 +175,7 @@ def edge_avoidance_heuristic(state: GameState, player=2) -> int:
 
 
 # heuristic 8 - pure distance to the winning tiles
-def straight_dist(state: GameState, player=2) -> int:
+def manhattan_dist(state: GameState, player=2) -> int:
     dist1 = BOARD_SIZE - 1 - state.player1_pos[1]
     dist2 = state.player2_pos[1]
     if player == 1:
