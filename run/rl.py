@@ -4,10 +4,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 
 from run.player import AbstractQuoridorPlayer
-from game.move import Move
+from game.move import Move, ALL_MOVES
 from game.game_state import GameState
+from game.move import ALL_MOVES
+from run.player import *
 
 
 class QNetwork(nn.Module):
@@ -27,20 +30,37 @@ class QNetwork(nn.Module):
 
 
 class DeepQLearningPlayer(AbstractQuoridorPlayer):
-    def __init__(self, state_size: int, action_size: int, epsilon: float = 1.0, epsilon_decay: float = 0.995,
+    def __init__(self, restrict, epsilon: float = 1.0, epsilon_decay: float = 0.995,
                  epsilon_min: float = 0.1, gamma: float = 0.99, learning_rate: float = 0.001):
-        self.state_size = state_size
-        self.action_size = action_size
+        self.restrict = restrict
+        self.state_size = len(GameState().to_vector())
+        print(f"State vector shape: {GameState().to_vector().shape}")
+        self.action_size = len(ALL_MOVES)
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.gamma = gamma
         self.memory = []  # Replay buffer
         self.batch_size = 64
-        self.q_network = QNetwork(state_size, action_size)
-        self.target_network = QNetwork(state_size, action_size)
+        self.q_network = QNetwork(self.state_size, self.action_size)
+        self.target_network = QNetwork(self.state_size, self.action_size)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
         self.loss_fn = nn.MSELoss()
+
+    def save_model(self, filename="q_network.pth"):
+        """
+        Saves the Q-network to a file.
+        """
+        torch.save(self.q_network.state_dict(), filename)
+        print(f"Model saved to {filename}")
+
+    def load_model(self, filename="q_network.pth"):
+        """
+        Loads the Q-network from a file.
+        """
+        self.q_network.load_state_dict(torch.load(filename))
+        self.q_network.eval()  # Set the model to evaluation mode
+        print(f"Model loaded from {filename}")
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -72,14 +92,15 @@ class DeepQLearningPlayer(AbstractQuoridorPlayer):
     def get_next_move(self, state: GameState) -> Move:
         if np.random.rand() < self.epsilon:
             # Exploration: choose a random legal move
-            legal_moves = state.get_legal_moves()
+            legal_moves = state.get_legal_moves(restrict=self.restrict)
+            print(legal_moves)
             return random.choice(legal_moves)
 
         # Exploitation: choose the best move based on Q-values
         state_tensor = self._state_to_tensor(state)
         with torch.no_grad():
             q_values = self.q_network(state_tensor)
-        legal_moves = state.get_legal_moves()
+        legal_moves = state.get_legal_moves(restrict=self.restrict)
 
         # Select the legal move with the highest Q-value
         best_move = max(legal_moves, key=lambda move: q_values[self._move_to_index(move)].item())
@@ -98,4 +119,44 @@ class DeepQLearningPlayer(AbstractQuoridorPlayer):
 
     def _move_to_index(self, move: Move) -> int:
         # Convert a move into an index for the Q-network output (this assumes a fixed set of possible moves)
-        return move.to_index()
+        # print(ALL_MOVES.index(move))
+        # print(move)
+        return ALL_MOVES.index(move)
+
+
+def train_agent(opponent_model, episodes=500, update_target_every=10):
+    print("training")
+    dqn_player = DeepQLearningPlayer(restrict=True)
+    opponent = opponent_model
+
+    for episode in tqdm(range(episodes)):
+        state = GameState()
+        while not state.is_game_over():
+            if state.p1_turn:
+                move = dqn_player.get_next_move(state)
+                old_state = dqn_player._state_to_tensor(state)
+                state.apply_move(move=move)
+                new_state = dqn_player._state_to_tensor(state)
+                reward = distance_to_end_heuristic(state, player=1)
+
+                # Remember this experience
+                dqn_player.remember(
+                    state=old_state,
+                    action=dqn_player._move_to_index(move),
+                    reward=reward,
+                    next_state=new_state,
+                    done=state.is_game_over()
+                )
+            else:
+                move = opponent.get_next_move(state)
+                state.apply_move(move=move)
+        # Replay experiences to train the network
+        dqn_player.replay()
+
+        # Update target network periodically
+        if episode % update_target_every == 0:
+            dqn_player.update_target_network()
+
+        print(f"Episode {episode + 1}/{episodes} complete. Epsilon: {dqn_player.epsilon:.2f}")
+        dqn_player.save_model("trained_q_network.pth")
+        print("model was saved")

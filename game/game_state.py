@@ -1,8 +1,10 @@
 import abc
 import typing
+import numpy as np
 
 from game.bfs import bfs_shortest_paths
-from game.move import WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement
+from game.move import (WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement,
+                       AROUND_PLAYER)
 
 
 class AbstractGameState(abc.ABC):
@@ -171,8 +173,27 @@ class GameState(AbstractGameState):
 
         return True
 
-    def get_legal_moves(self) -> list[Move]:
-        return [move for move in ALL_MOVES if self.is_move_legal(move=move)]
+    def get_legal_moves(self, restrict=False) -> list[Move]:
+        legal_moves = [move for move in ALL_MOVES if self.is_move_legal(move=move)]
+        if not restrict:
+            return legal_moves
+        # allows walls that are only near players
+        res = []
+        for move in legal_moves:
+            if isinstance(move, WallPlacement):
+                near1 = ((self.player1_pos[0] - AROUND_PLAYER <= move.center_x <= self.player1_pos[
+                    0] + AROUND_PLAYER - 1)
+                         and (self.player1_pos[1] - AROUND_PLAYER <= move.center_y <= self.player1_pos[
+                            1] + AROUND_PLAYER))
+                near2 = ((self.player2_pos[0] - AROUND_PLAYER <= move.center_x <= self.player2_pos[
+                    0] + AROUND_PLAYER - 1)
+                         and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
+                            1] + AROUND_PLAYER))
+                if near1 or near2:
+                    res.append(move)
+            else:
+                res.append(move)
+        return res
 
     def apply_move(self, move: Move, check_legal: bool = True) -> None:
         if check_legal and not self.is_move_legal(move):
@@ -203,3 +224,31 @@ class GameState(AbstractGameState):
             if self.is_move_legal(move=move):
                 return True
         return False
+
+    def to_vector(self):
+        """
+        Converts the game state into a flattened 1D array representation.
+
+        Returns:
+            np.ndarray: A 1D array representing the game state.
+        """
+        board = np.zeros((3, BOARD_SIZE, BOARD_SIZE), dtype=np.float32)
+
+        # Plane 0: Player 1 position
+        board[0, self.player1_pos[0], self.player1_pos[1]] = 1.0
+
+        # Plane 1: Player 2 position
+        board[1, self.player2_pos[0], self.player2_pos[1]] = 1.0
+
+        # Plane 2: Wall positions
+        for wall in self.walls:
+            if wall.orientation == WallOrientation.HORIZONTAL:
+                board[2, wall.center_x, wall.center_y] = 1.0
+            elif wall.orientation == WallOrientation.VERTICAL:
+                board[2, wall.center_x + 1, wall.center_y] = 1.0
+
+        # Flatten the board and append turn indicator
+        flat_board = board.flatten()
+        turn_indicator = np.array([1.0 if self.p1_turn else 0.0], dtype=np.float32)
+
+        return np.concatenate((flat_board, turn_indicator))

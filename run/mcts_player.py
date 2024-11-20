@@ -37,7 +37,12 @@ class Node:
 
 
 class MCTSPlayer(AbstractQuoridorPlayer):
-    def __init__(self, num_simulations: int = 1000, exploration_param: float = 1.414):
+    def __init__(self, heurisric, player, depth, restrict_walls, num_simulations: int = 1000,
+                 exploration_param: float = 1.414):
+        self.heuristic = heurisric
+        self.player = player
+        self.depth = depth
+        self.restrict_walls = restrict_walls
         self.num_simulations = num_simulations
         self.exploration_param = exploration_param
 
@@ -63,7 +68,7 @@ class MCTSPlayer(AbstractQuoridorPlayer):
 
     def _expand(self, node: Node) -> Node:
         # Expand a new child from unexplored moves
-        untried_moves = [move for move in node.state.get_legal_moves() if
+        untried_moves = [move for move in node.state.get_legal_moves(self.restrict_walls) if
                          move not in [child.move for child in node.children]]
         move = random.choice(untried_moves)
         next_state = node.state.get_new_state(move)
@@ -71,14 +76,38 @@ class MCTSPlayer(AbstractQuoridorPlayer):
         node.children.append(child_node)
         return child_node
 
-    def _simulate(self, state: GameState) -> float:
-        # Simulate a random game until the end and return the result
-        current_state = state
-        while not current_state.is_game_over():
-            move = random.choice(current_state.get_legal_moves())
-            current_state = current_state.get_new_state(move)
+    # def _expand(self, node: Node) -> Node:
+    #     # Get legal moves and rank them based on heuristic
+    #     untried_moves = [move for move in node.state.get_legal_moves(self.restrict_walls) if
+    #                      move not in [child.move for child in node.children]]
+    #     if not untried_moves:
+    #         return None
+    #
+    #     # Use heuristic to sort moves and pick the best one to expand
+    #     sorted_moves = sorted(untried_moves, key=lambda move: self.heuristic(node.state.get_new_state(move)),
+    #                           reverse=True)
+    #     move = sorted_moves[0]  # Choose the move with the highest heuristic score
+    #     next_state = node.state.get_new_state(move)
+    #     child_node = Node(state=next_state, parent=node, move=move)
+    #     node.children.append(child_node)
+    #     return child_node
 
-        # Assuming a binary win/loss, return 1 for a win and 0 for a loss
+    def _simulate(self, state: GameState) -> float:
+        current_state = state
+        depth = 0
+        while not current_state.is_game_over():
+            # If depth exceeds a certain limit, evaluate using heuristic
+            if depth >= self.depth:
+                return self.heuristic(current_state, player=self.player)
+
+            # Choose a move based on heuristics rather than randomly
+            legal_moves = current_state.get_legal_moves(self.restrict_walls)
+            move = max(legal_moves,
+                       key=lambda move: self.heuristic(current_state.get_new_state(move), player=self.player), )
+            current_state = current_state.get_new_state(move)
+            depth += 1
+
+        # At game end, return binary win/loss
         return 1.0 if current_state.is_winner() else 0.0
 
     def _backpropagate(self, node: Node, result: float):

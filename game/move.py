@@ -44,3 +44,5 @@ def apply_movement(movement: Move, pos: list[int]):
 ALL_MOVES = [Movement.MOVE_UP, Movement.MOVE_DOWN, Movement.MOVE_LEFT, Movement.MOVE_RIGHT] + \
     [WallPlacement(orientation=orientation, center_x=center_x, center_y=center_y)
      for orientation in WallOrientation for center_x in range(BOARD_SIZE - 1) for center_y in range(BOARD_SIZE - 1)]
+
+AROUND_PLAYER = 1

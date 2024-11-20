@@ -18,8 +18,9 @@ class RandomQuoridorPlayer(AbstractQuoridorPlayer):
 
 
 class MinimaxPlayer(AbstractQuoridorPlayer):
-    def __init__(self, heuristic_evaluation, depth: int = 3):
+    def __init__(self, heuristic_evaluation, player, depth: int = 3):
         self.depth = depth
+        self.player = player
         self.heuristic_evaluation = heuristic_evaluation
 
     def get_next_move(self, state: GameState) -> Move:
@@ -40,7 +41,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
     def minimax(self, state: GameState, depth: int, maximizing_player: bool) -> int:
         """Minimax algorithm with depth limit."""
         if depth == 0 or state.is_game_over():
-            return self.heuristic_evaluation(state)
+            return self.heuristic_evaluation(state,self.player)
 
         if maximizing_player:
             max_eval = -math.inf
@@ -57,7 +58,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
                 min_eval = min(min_eval, eval_value)
             return min_eval
 
-    def heuristic_evaluation(self, state: GameState) -> int:
+    def heuristic_evaluation(self, state: GameState, player: int) -> int:
         """Evaluate the game state for the minimax algorithm."""
         # This should be defined according to the rules of the game,
         # and will typically evaluate the game state favorably for the player
@@ -65,19 +66,109 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         raise NotImplementedError("Heuristic evaluation must be defined for specific game.")
 
 
-def distance_to_end_heuristic(state: GameState) -> int:
+# heuristics
+def distance1(state: GameState):
     bfs_result = bfs_shortest_paths(start_node=tuple(state.player1_pos),
                                     get_free_neighbors=state.get_free_neighbor_tiles)
     winning_tiles = [(x, BOARD_SIZE - 1) for x in range(BOARD_SIZE)]
     player1_distance = min([len(path) for tile, path in bfs_result.items() if tile in winning_tiles])
+    return player1_distance
 
+
+def distance2(state: GameState):
     bfs_result = bfs_shortest_paths(start_node=tuple(state.player2_pos),
                                     get_free_neighbors=state.get_free_neighbor_tiles)
     winning_tiles = [(x, 0) for x in range(BOARD_SIZE)]
     player2_distance = min([len(path) for tile, path in bfs_result.items() if tile in winning_tiles])
+    return player2_distance
+
+
+# heuristic 1 - prioritizes states where you are closer and the opponent is further
+def distance_to_end_heuristic(state: GameState, player=2) -> int:
+    player1_distance = distance1(state)
+    player2_distance = distance2(state)
 
     if player2_distance == 0:
-        return math.inf
+        return math.inf if player == 2 else -math.inf
     if player1_distance == 0:
-        return -math.inf
+        return -math.inf if player == 2 else math.inf
+
+    if player == 1:
+        return player2_distance - player1_distance
     return player1_distance - player2_distance
+
+
+# heuristic 2 - Prioritizes states where you are closer to the winning sqaures
+def winning_heuristic(state: GameState, player=2) -> int:
+    player2_distance = distance2(state)
+    if player == 1:
+        return player2_distance
+    return -player2_distance
+
+
+# heuristic 3 - Prioritizes states where walls make it harder for the opponent to progress.
+def blocking_heuristic(state: GameState, player=2) -> int:
+    player1_distance = distance1(state)
+    if player == 1:
+        return -player1_distance
+    return player1_distance
+
+
+# heuristic 4 - Encourages the player to stay closer to the center of the board, improving flexibility.
+def central_position_heuristic(state: GameState, player=2) -> int:
+    center = BOARD_SIZE // 2
+    player1_distance_to_center = abs(state.player1_pos[0] - center) + abs(state.player1_pos[1] - center)
+    player2_distance_to_center = abs(state.player2_pos[0] - center) + abs(state.player2_pos[1] - center)
+
+    # Favor positions closer to the center
+    if player == 2:
+        return player1_distance_to_center - player2_distance_to_center
+    return player2_distance_to_center - player1_distance_to_center
+
+
+# heuristic 5 - Counts the number of viable paths to the goal for both players.
+# not good heuristic
+def escape_route_heuristic(state: GameState, player=2) -> int:
+    player1_routes = len(bfs_shortest_paths(start_node=tuple(state.player1_pos),
+                                            get_free_neighbors=state.get_free_neighbor_tiles))
+    player2_routes = len(bfs_shortest_paths(start_node=tuple(state.player2_pos),
+                                            get_free_neighbors=state.get_free_neighbor_tiles))
+
+    # Reward states where player 1 has more paths available
+    if player == 2:
+        return player2_routes - player1_routes
+    return player1_routes - player2_routes
+
+
+# heuristic 6 - Encourages the player to stay closer to the opponent for potential blocking opportunities.
+
+def proximity_heuristic(state: GameState, player=2) -> int:
+    distance_between_players = abs(state.player1_pos[0] - state.player2_pos[0]) + abs(
+        state.player1_pos[1] - state.player2_pos[1])
+    return -distance_between_players  # Closer proximity is better
+
+
+# heuristic 7 - Penalizes players for being near the edges of the board, which limits movement options.
+def edge_avoidance_heuristic(state: GameState, player=2) -> int:
+    player1_edge_distance = min(state.player1_pos[0], BOARD_SIZE - 1 - state.player1_pos[0],
+                                state.player1_pos[1], BOARD_SIZE - 1 - state.player1_pos[1])
+    player2_edge_distance = min(state.player2_pos[0], BOARD_SIZE - 1 - state.player2_pos[0],
+                                state.player2_pos[1], BOARD_SIZE - 1 - state.player2_pos[1])
+
+    # Favor states where player 1 is farther from edges
+    if player == 2:
+        return player2_edge_distance - player1_edge_distance
+    return player1_edge_distance - player2_edge_distance
+
+
+# heuristic 8 - combine these heuristics into a weighted formula for evaluation:
+def combined_heuristic(state: GameState, player=2) -> int:
+    return (
+            distance_to_end_heuristic(state, player) +
+            2 * winning_heuristic(state, player) +
+            2 * blocking_heuristic(state, player) +
+            0.5 * central_position_heuristic(state, player) +
+            0.5 * escape_route_heuristic(state, player) +
+            proximity_heuristic(state, player) +
+            edge_avoidance_heuristic(state, player)
+    )
