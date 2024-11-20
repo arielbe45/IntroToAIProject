@@ -1,4 +1,5 @@
 import random
+import typing
 
 import numpy as np
 import torch
@@ -124,7 +125,8 @@ class DeepQLearningPlayer(AbstractQuoridorPlayer):
         return ALL_MOVES.index(move)
 
 
-def train_agent(opponent_model, episodes=500, update_target_every=10):
+def train_agent(opponent_model, reward_heuristic: typing.Callable[[GameState, int], float],
+                episodes=500, update_target_every=10):
     print("training")
     dqn_player = DeepQLearningPlayer(restrict=True)
     opponent = opponent_model
@@ -137,7 +139,7 @@ def train_agent(opponent_model, episodes=500, update_target_every=10):
                 old_state = dqn_player._state_to_tensor(state)
                 state.apply_move(move=move)
                 new_state = dqn_player._state_to_tensor(state)
-                reward = distance_to_end_heuristic(state, player=1)
+                reward = reward_heuristic(state, player=1)
 
                 # Remember this experience
                 dqn_player.remember(

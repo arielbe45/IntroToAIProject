@@ -232,7 +232,7 @@ class GameState(AbstractGameState):
         Returns:
             np.ndarray: A 1D array representing the game state.
         """
-        board = np.zeros((3, BOARD_SIZE, BOARD_SIZE), dtype=np.float32)
+        board = np.zeros((4, BOARD_SIZE, BOARD_SIZE), dtype=np.float32)
 
         # Plane 0: Player 1 position
         board[0, self.player1_pos[0], self.player1_pos[1]] = 1.0
@@ -245,7 +245,7 @@ class GameState(AbstractGameState):
             if wall.orientation == WallOrientation.HORIZONTAL:
                 board[2, wall.center_x, wall.center_y] = 1.0
             elif wall.orientation == WallOrientation.VERTICAL:
-                board[2, wall.center_x + 1, wall.center_y] = 1.0
+                board[3, wall.center_x, wall.center_y] = 1.0
 
         # Flatten the board and append turn indicator
         flat_board = board.flatten()
