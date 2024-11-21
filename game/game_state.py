@@ -1,8 +1,9 @@
 import abc
 import typing
+
 import numpy as np
 
-from game.bfs import bfs_shortest_paths
+from game.bfs import bfs_distance_to_goal
 from game.move import (WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement,
                        AROUND_PLAYER)
 
@@ -46,6 +47,16 @@ class AbstractGameState(abc.ABC):
     @abc.abstractmethod
     def apply_move(self, move: Move, check_legal: bool = True) -> None:
         pass
+
+
+def player1_dist_to_goal(state: 'GameState'):
+    return bfs_distance_to_goal(start_node=tuple(state.player1_pos), get_free_neighbors=state.get_free_neighbor_tiles,
+                                check_goal=lambda pos: pos[1] == BOARD_SIZE - 1)
+
+
+def player2_dist_to_goal(state: 'GameState'):
+    return bfs_distance_to_goal(start_node=tuple(state.player2_pos), get_free_neighbors=state.get_free_neighbor_tiles,
+                                check_goal=lambda pos: pos[1] == 0)
 
 
 class GameState(AbstractGameState):
@@ -157,29 +168,15 @@ class GameState(AbstractGameState):
         else:
             return False  # Unknown move type
 
-        # Check if move does not prevent players to reach other side
         new_state = self.get_new_state(move=move, check_legal=False)
-        bfs_result = bfs_shortest_paths(start_node=tuple(self.player1_pos),
-                                        get_free_neighbors=new_state.get_free_neighbor_tiles)
-        winning_tiles = [(x, BOARD_SIZE - 1) for x in range(BOARD_SIZE)]
-        if not any(tile in bfs_result for tile in winning_tiles):
-            return False
-
-        bfs_result = bfs_shortest_paths(start_node=tuple(self.player2_pos),
-                                        get_free_neighbors=new_state.get_free_neighbor_tiles)
-        winning_tiles = [(x, 0) for x in range(BOARD_SIZE)]
-        if not any(tile in bfs_result for tile in winning_tiles):
-            return False
-
-        return True
+        return player1_dist_to_goal(new_state) < float('inf') and player2_dist_to_goal(new_state) < float('inf')
 
     def get_legal_moves(self, restrict=False) -> list[Move]:
-        legal_moves = [move for move in ALL_MOVES if self.is_move_legal(move=move)]
         if not restrict:
-            return legal_moves
+            return [move for move in ALL_MOVES if self.is_move_legal(move=move)]
         # allows walls that are only near players
         res = []
-        for move in legal_moves:
+        for move in ALL_MOVES:
             if isinstance(move, WallPlacement):
                 near1 = ((self.player1_pos[0] - AROUND_PLAYER <= move.center_x <= self.player1_pos[
                     0] + AROUND_PLAYER - 1)
@@ -189,9 +186,9 @@ class GameState(AbstractGameState):
                     0] + AROUND_PLAYER - 1)
                          and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
                             1] + AROUND_PLAYER))
-                if near1 or near2:
+                if (near1 or near2) and self.is_move_legal(move=move):
                     res.append(move)
-            else:
+            elif self.is_move_legal(move=move):
                 res.append(move)
         return res
 
@@ -214,13 +211,13 @@ class GameState(AbstractGameState):
         return self.p1_wins() or self.p2_wins()
 
     def p1_wins(self) -> bool:
-        return self.player1_pos[1] == BOARD_SIZE - 1 or (not self.p1_turn and not self.has_legal_moves())
+        return self.player1_pos[1] == BOARD_SIZE - 1 or (not self.p1_turn and not self.can_move())
 
     def p2_wins(self) -> bool:
-        return self.player2_pos[1] == 0 or (self.p1_turn and not self.has_legal_moves())
+        return self.player2_pos[1] == 0 or (self.p1_turn and not self.can_move())
 
-    def has_legal_moves(self) -> bool:
-        for move in ALL_MOVES:
+    def can_move(self) -> bool:
+        for move in Movement:
             if self.is_move_legal(move=move):
                 return True
         return False
