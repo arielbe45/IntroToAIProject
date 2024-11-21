@@ -192,7 +192,7 @@ class GameState(AbstractGameState):
                     0] + AROUND_PLAYER - 1)
                          and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
                             1] + AROUND_PLAYER))
-                if (near1 or near2) and self.is_move_legal(move=move, check_bfs=check_bfs):
+                if (near1 and not self.p1_turn or near2 and self.p1_turn) and self.is_move_legal(move=move, check_bfs=check_bfs):
                     res.append(move)
             elif self.is_move_legal(move=move, check_bfs=check_bfs):
                 res.append(move)
@@ -224,7 +224,7 @@ class GameState(AbstractGameState):
 
     def can_move(self) -> bool:
         for move in Movement:
-            if self.is_move_legal(move=move):
+            if self.is_move_legal(move=move, check_bfs=False):
                 return True
         return False
 
