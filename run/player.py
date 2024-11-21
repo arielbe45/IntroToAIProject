@@ -6,6 +6,22 @@ from game.bfs import bfs_shortest_paths
 from game.game_state import GameState, Move, BOARD_SIZE, player1_dist_to_goal, player2_dist_to_goal
 
 
+def min2(x, y):
+    if x is None:
+        return y
+    if y is None:
+        return x
+    return min(x, y)
+
+
+def max2(x, y):
+    if x is None:
+        return y
+    if y is None:
+        return x
+    return max(x, y)
+
+
 class AbstractQuoridorPlayer(abc.ABC):
     @abc.abstractmethod
     def get_next_move(self, state: GameState) -> Move:
@@ -31,16 +47,16 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         beta = math.inf
 
         # Iterate over all legal moves
-        for move in state.get_legal_moves():
-            new_state = state.get_new_state(move)
+        for move in state.get_legal_moves(check_bfs=False):
+            new_state = state.get_new_state(move, check_legal=False)
             move_value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False)
 
-            if move_value > best_value:
+            if max2(move_value, best_value) != best_value:
                 best_value = move_value
                 best_move = move
 
             # Update alpha
-            alpha = max(alpha, best_value)
+            alpha = max2(alpha, best_value)
 
         return best_move
 
@@ -48,25 +64,28 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         """Alpha-beta pruning algorithm with depth limit."""
         # Base case: return the heuristic value if depth is 0 or the game is over
         if depth == 0 or state.is_game_over():
+            # avoid illegal states
+            if not state.check_state_legal():
+                return None
             return self.heuristic_evaluation(state, self.player)
 
         if maximizing_player:
             max_eval = -math.inf
-            for move in state.get_legal_moves():
-                new_state = state.get_new_state(move)
+            for move in state.get_legal_moves(check_bfs=False):
+                new_state = state.get_new_state(move, check_legal=False)
                 eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, False)
-                max_eval = max(max_eval, eval_value)
-                alpha = max(alpha, eval_value)
+                max_eval = max2(max_eval, eval_value)
+                alpha = max2(alpha, eval_value)
                 if beta <= alpha:
                     break  # Beta cut-off
             return max_eval
         else:
             min_eval = math.inf
-            for move in state.get_legal_moves():
-                new_state = state.get_new_state(move)
+            for move in state.get_legal_moves(check_bfs=False):
+                new_state = state.get_new_state(move, check_legal=False)
                 eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, True)
-                min_eval = min(min_eval, eval_value)
-                beta = min(beta, eval_value)
+                min_eval = min2(min_eval, eval_value)
+                beta = min2(beta, eval_value)
                 if beta <= alpha:
                     break  # Alpha cut-off
             return min_eval

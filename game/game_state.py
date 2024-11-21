@@ -12,7 +12,7 @@ class AbstractGameState(abc.ABC):
     def __init__(self):
         self.p1_turn: bool = True
 
-    def get_new_state(self, move: Move, check_legal: bool = True) -> 'AbstractGameState':
+    def get_new_state(self, move: Move, check_legal) -> 'AbstractGameState':
         state = self.copy()
         state.apply_move(move=move, check_legal=check_legal)
         return state
@@ -129,7 +129,7 @@ class GameState(AbstractGameState):
                     return True  # Wall to the right blocks right movement
         return False
 
-    def is_move_legal(self, move: Move) -> bool:
+    def is_move_legal(self, move: Move, check_bfs: bool = True) -> bool:
         # Check if it's a wall placement
         if isinstance(move, WallPlacement):
             # Ensure wall is within bounds
@@ -168,12 +168,18 @@ class GameState(AbstractGameState):
         else:
             return False  # Unknown move type
 
-        new_state = self.get_new_state(move=move, check_legal=False)
-        return player1_dist_to_goal(new_state) < float('inf') and player2_dist_to_goal(new_state) < float('inf')
+        if not check_bfs:
+            return True
 
-    def get_legal_moves(self, restrict=False) -> list[Move]:
+        new_state = self.get_new_state(move=move, check_legal=False)
+        return new_state.check_state_legal()
+
+    def check_state_legal(self):
+        return player1_dist_to_goal(self) < float('inf') and player2_dist_to_goal(self) < float('inf')
+
+    def get_legal_moves(self, restrict=False, check_bfs: bool = True) -> list[Move]:
         if not restrict:
-            return [move for move in ALL_MOVES if self.is_move_legal(move=move)]
+            return [move for move in ALL_MOVES if self.is_move_legal(move=move, check_bfs=check_bfs)]
         # allows walls that are only near players
         res = []
         for move in ALL_MOVES:
@@ -186,9 +192,9 @@ class GameState(AbstractGameState):
                     0] + AROUND_PLAYER - 1)
                          and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
                             1] + AROUND_PLAYER))
-                if (near1 or near2) and self.is_move_legal(move=move):
+                if (near1 or near2) and self.is_move_legal(move=move, check_bfs=check_bfs):
                     res.append(move)
-            elif self.is_move_legal(move=move):
+            elif self.is_move_legal(move=move, check_bfs=check_bfs):
                 res.append(move)
         return res
 
