@@ -119,6 +119,15 @@ def distance_to_end_heuristic(state: GameState, player) -> float:
     return player1_distance - player2_distance
 
 
+def normalized_distance_to_end_heuristic(state: GameState, player) -> float:
+    if state.p1_wins():
+        return 1 if player == 1 else 0
+    elif state.p2_wins():
+        return 1 if player == 2 else 0
+
+    return distance_to_end_heuristic(state=state, player=player) / (2 * BOARD_SIZE ** 2) + 1 / 2
+
+
 # heuristic 2 - Prioritizes states where you are closer to the winning sqaures
 def winning_heuristic(state: GameState, player) -> int:
     player2_distance = player2_dist_to_goal(state)
