@@ -34,10 +34,11 @@ class RandomQuoridorPlayer(AbstractQuoridorPlayer):
 
 
 class MinimaxPlayer(AbstractQuoridorPlayer):
-    def __init__(self, heuristic_evaluation, player, depth: int = 3):
+    def __init__(self, heuristic_evaluation, player, depth: int = 3, restrict: bool = False):
         self.depth = depth
         self.player = player
         self.heuristic_evaluation = heuristic_evaluation
+        self.restrict = restrict
 
     def get_next_move(self, state: GameState) -> Move:
         """Decides the best move using the minimax algorithm with alpha-beta pruning."""
@@ -47,7 +48,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         beta = math.inf
 
         # Iterate over all legal moves
-        for move in state.get_legal_moves(check_bfs=False):
+        for move in state.get_legal_moves(check_bfs=False, restrict=self.restrict):
             new_state = state.get_new_state(move, check_legal=False)
             move_value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False)
 
@@ -71,7 +72,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
 
         if maximizing_player:
             max_eval = -math.inf
-            for move in state.get_legal_moves(check_bfs=False):
+            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=False):
                 new_state = state.get_new_state(move, check_legal=False)
                 eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, False)
                 max_eval = max2(max_eval, eval_value)
@@ -81,7 +82,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
             return max_eval
         else:
             min_eval = math.inf
-            for move in state.get_legal_moves(check_bfs=False):
+            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=False):
                 new_state = state.get_new_state(move, check_legal=False)
                 eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, True)
                 min_eval = min2(min_eval, eval_value)
