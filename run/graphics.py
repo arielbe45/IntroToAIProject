@@ -10,6 +10,7 @@ TILE_SIZE = 60  # Size of each square tile in pixels
 WALL_THICKNESS = 10  # Thickness of the walls
 PLAYER_RADIOS = TILE_SIZE // 3  # Radios of each circle representing a player
 SCREEN_SIZE = TILE_SIZE * BOARD_SIZE
+SCREEN_HEIGHT = TILE_SIZE * BOARD_SIZE + 50  # Extra space for text
 
 
 def get_tile_closest_to_coords(coords) -> Tuple[int, int, int]:
@@ -43,9 +44,10 @@ def get_wall_closest_to_coords(coords) -> Tuple[int, int, int]:
 class Graphics:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
+        self.screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_HEIGHT))
         pygame.display.set_caption('Quoridor Game')
 
+        self.font = pygame.font.Font(None, 36)  # Default font for wall count
         self.colors = {
             "background": (255, 255, 255),  # White background
             "grid": (0, 0, 0),  # Black grid
@@ -94,6 +96,14 @@ class Graphics:
             PLAYER_RADIOS
         )
 
+    def draw_wall_counts(self, state: GameState):
+        """Displays the remaining wall counts for both players."""
+        p1_text = self.font.render(f"P1 Walls: {state.p1_walls_remaining}", True, self.colors["player1"])
+        p2_text = self.font.render(f"P2 Walls: {state.p2_walls_remaining}", True, self.colors["player2"])
+
+        self.screen.blit(p1_text, (10, SCREEN_SIZE + 10))  # Bottom-left of the screen
+        self.screen.blit(p2_text, (SCREEN_SIZE - 200, SCREEN_SIZE + 10))  # Bottom-right of the screen
+
     def display_board(self, state: GameState) -> None:
         self.draw_grid()
 
@@ -104,6 +114,7 @@ class Graphics:
         # Draw players
         self.draw_player(player_pos=state.player1_pos, color=self.colors["player1"])
         self.draw_player(player_pos=state.player2_pos, color=self.colors["player2"])
+        self.draw_wall_counts(state)
         pygame.display.flip()
 
     def get_chosen_move(self, mouse_pos: tuple[int, int], state: GameState) -> Optional[Move]:

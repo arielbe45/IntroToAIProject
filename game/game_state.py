@@ -4,8 +4,8 @@ import typing
 import numpy as np
 
 from game.bfs import bfs_distance_to_goal
-from game.move import (WallPlacement, BOARD_SIZE, Move, Movement, WallOrientation, ALL_MOVES, apply_movement,
-                       AROUND_PLAYER)
+from game.move import (WallPlacement, BOARD_SIZE, NUMBER_OF_WALLS, Move, Movement, WallOrientation, ALL_MOVES,
+                       apply_movement, AROUND_PLAYER)
 
 
 class AbstractGameState(abc.ABC):
@@ -66,6 +66,8 @@ class GameState(AbstractGameState):
         # In range 0 to BOARD_SIZE - 1 inclusive, top left is (0,0)
         self.player1_pos: list[int] = [int(BOARD_SIZE / 2), 0]
         self.player2_pos: list[int] = [int(BOARD_SIZE / 2), BOARD_SIZE - 1]
+        self.p1_walls_remaining = NUMBER_OF_WALLS
+        self.p2_walls_remaining = NUMBER_OF_WALLS
 
     def copy(self):
         state = GameState()
@@ -132,6 +134,9 @@ class GameState(AbstractGameState):
     def is_move_legal(self, move: Move, check_bfs: bool = True) -> bool:
         # Check if it's a wall placement
         if isinstance(move, WallPlacement):
+            # Check if the current player has walls left to place
+            if (self.p1_turn and self.p1_walls_remaining <= 0) or (not self.p1_turn and self.p2_walls_remaining <= 0):
+                return False  # No walls remaining for this player
             # Ensure wall is within bounds
             if not (0 <= move.center_x < BOARD_SIZE - 1 and 0 <= move.center_y < BOARD_SIZE - 1):
                 return False  # Wall out of bounds
@@ -205,7 +210,10 @@ class GameState(AbstractGameState):
         # Apply a wall placement
         if isinstance(move, WallPlacement):
             self.walls.append(move)
-
+            if self.p1_turn:
+                self.p1_walls_remaining -= 1
+            else:
+                self.p2_walls_remaining -= 1
         # Apply player movement
         elif isinstance(move, Movement):
             self.set_current_player_pos(apply_movement(move, self.get_current_player_pos()))
