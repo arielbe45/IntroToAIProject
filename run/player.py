@@ -3,7 +3,7 @@ import math
 import random
 
 from game.bfs import bfs_shortest_paths
-from game.game_state import GameState, Move, BOARD_SIZE
+from game.game_state import GameState, Move, BOARD_SIZE, player1_dist_to_goal, player2_dist_to_goal
 
 
 class AbstractQuoridorPlayer(abc.ABC):
@@ -71,7 +71,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
                     break  # Alpha cut-off
             return min_eval
 
-    def heuristic_evaluation(self, state: GameState, player: int) -> int:
+    def heuristic_evaluation(self, state: GameState, player: int) -> float:
         """Evaluate the game state for the minimax algorithm."""
         # This should be defined according to the rules of the game,
         # and will typically evaluate the game state favorably for the player
@@ -79,27 +79,15 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         raise NotImplementedError("Heuristic evaluation must be defined for specific game.")
 
 
-# heuristics
-def distance1(state: GameState):
-    bfs_result = bfs_shortest_paths(start_node=tuple(state.player1_pos),
-                                    get_free_neighbors=state.get_free_neighbor_tiles)
-    winning_tiles = [(x, BOARD_SIZE - 1) for x in range(BOARD_SIZE)]
-    player1_distance = min([len(path) for tile, path in bfs_result.items() if tile in winning_tiles])
-    return player1_distance
-
-
-def distance2(state: GameState):
-    bfs_result = bfs_shortest_paths(start_node=tuple(state.player2_pos),
-                                    get_free_neighbors=state.get_free_neighbor_tiles)
-    winning_tiles = [(x, 0) for x in range(BOARD_SIZE)]
-    player2_distance = min([len(path) for tile, path in bfs_result.items() if tile in winning_tiles])
-    return player2_distance
-
-
 # heuristic 1 - prioritizes states where you are closer and the opponent is further
-def distance_to_end_heuristic(state: GameState, player=2) -> int:
-    player1_distance = distance1(state)
-    player2_distance = distance2(state)
+def distance_to_end_heuristic(state: GameState, player) -> float:
+    if state.p1_wins():
+        return float('inf') if player == 1 else -float('inf')
+    elif state.p2_wins():
+        return float('inf') if player == 2 else -float('inf')
+
+    player1_distance = player1_dist_to_goal(state)
+    player2_distance = player2_dist_to_goal(state)
 
     if player2_distance == 0:
         return math.inf if player == 2 else -math.inf
@@ -112,23 +100,23 @@ def distance_to_end_heuristic(state: GameState, player=2) -> int:
 
 
 # heuristic 2 - Prioritizes states where you are closer to the winning sqaures
-def winning_heuristic(state: GameState, player=2) -> int:
-    player2_distance = distance2(state)
+def winning_heuristic(state: GameState, player) -> int:
+    player2_distance = player2_dist_to_goal(state)
     if player == 1:
         return player2_distance
     return -player2_distance
 
 
 # heuristic 3 - Prioritizes states where walls make it harder for the opponent to progress.
-def blocking_heuristic(state: GameState, player=2) -> int:
-    player1_distance = distance1(state)
+def blocking_heuristic(state: GameState, player) -> int:
+    player1_distance = player1_dist_to_goal(state)
     if player == 1:
         return -player1_distance
     return player1_distance
 
 
 # heuristic 4 - Encourages the player to stay closer to the center of the board, improving flexibility.
-def central_position_heuristic(state: GameState, player=2) -> int:
+def central_position_heuristic(state: GameState, player) -> int:
     center = BOARD_SIZE // 2
     player1_distance_to_center = abs(state.player1_pos[0] - center) + abs(state.player1_pos[1] - center)
     player2_distance_to_center = abs(state.player2_pos[0] - center) + abs(state.player2_pos[1] - center)
@@ -141,7 +129,7 @@ def central_position_heuristic(state: GameState, player=2) -> int:
 
 # heuristic 5 - Counts the number of viable paths to the goal for both players.
 # not good heuristic
-def escape_route_heuristic(state: GameState, player=2) -> int:
+def escape_route_heuristic(state: GameState, player) -> int:
     player1_routes = len(bfs_shortest_paths(start_node=tuple(state.player1_pos),
                                             get_free_neighbors=state.get_free_neighbor_tiles))
     player2_routes = len(bfs_shortest_paths(start_node=tuple(state.player2_pos),
@@ -155,14 +143,14 @@ def escape_route_heuristic(state: GameState, player=2) -> int:
 
 # heuristic 6 - Encourages the player to stay closer to the opponent for potential blocking opportunities.
 
-def proximity_heuristic(state: GameState, player=2) -> int:
+def proximity_heuristic(state: GameState, player) -> int:
     distance_between_players = abs(state.player1_pos[0] - state.player2_pos[0]) + abs(
         state.player1_pos[1] - state.player2_pos[1])
     return -distance_between_players  # Closer proximity is better
 
 
 # heuristic 7 - Penalizes players for being near the edges of the board, which limits movement options.
-def edge_avoidance_heuristic(state: GameState, player=2) -> int:
+def edge_avoidance_heuristic(state: GameState, player) -> int:
     player1_edge_distance = min(state.player1_pos[0], BOARD_SIZE - 1 - state.player1_pos[0],
                                 state.player1_pos[1], BOARD_SIZE - 1 - state.player1_pos[1])
     player2_edge_distance = min(state.player2_pos[0], BOARD_SIZE - 1 - state.player2_pos[0],
@@ -175,7 +163,7 @@ def edge_avoidance_heuristic(state: GameState, player=2) -> int:
 
 
 # heuristic 8 - pure distance to the winning tiles
-def manhattan_dist(state: GameState, player=2) -> int:
+def manhattan_dist(state: GameState, player) -> int:
     dist1 = BOARD_SIZE - 1 - state.player1_pos[1]
     dist2 = state.player2_pos[1]
     if player == 1:
@@ -184,7 +172,7 @@ def manhattan_dist(state: GameState, player=2) -> int:
 
 
 # heuristic 9 - combine these heuristics into a weighted formula for evaluation:
-def combined_heuristic(state: GameState, player=2) -> int:
+def combined_heuristic(state: GameState, player) -> float:
     return (
             distance_to_end_heuristic(state, player) +
             2 * winning_heuristic(state, player) +
