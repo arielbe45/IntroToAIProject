@@ -69,11 +69,17 @@ class GameState(AbstractGameState):
         self.p1_walls_remaining = NUMBER_OF_WALLS
         self.p2_walls_remaining = NUMBER_OF_WALLS
 
+    @property
+    def current_player(self):
+        return 1 if self.p1_turn else 2
+
     def copy(self):
         state = GameState()
         state.walls = self.walls.copy()
         state.player1_pos = self.player1_pos[:]
         state.player2_pos = self.player2_pos[:]
+        state.player1_walls_remaining = self.p1_walls_remaining
+        state.player2_walls_remaining = self.p2_walls_remaining
         state.p1_turn = self.p1_turn
         return state
 
