@@ -5,7 +5,7 @@ import numpy as np
 
 from game.bfs import bfs_distance_to_goal
 from game.move import (WallPlacement, BOARD_SIZE, NUMBER_OF_WALLS, Move, Movement, WallOrientation, ALL_MOVES,
-                       apply_movement, AROUND_PLAYER)
+                       apply_movement, AROUND_PLAYER, MAX_NUMBER_OF_TURNS)
 
 
 class AbstractGameState(abc.ABC):
@@ -68,13 +68,21 @@ class GameState(AbstractGameState):
         self.player2_pos: list[int] = [int(BOARD_SIZE / 2), BOARD_SIZE - 1]
         self.p1_walls_remaining = NUMBER_OF_WALLS
         self.p2_walls_remaining = NUMBER_OF_WALLS
+        self.time = 0
+
+    @property
+    def current_player(self):
+        return 1 if self.p1_turn else 2
 
     def copy(self):
         state = GameState()
         state.walls = self.walls.copy()
         state.player1_pos = self.player1_pos[:]
         state.player2_pos = self.player2_pos[:]
+        state.player1_walls_remaining = self.p1_walls_remaining
+        state.player2_walls_remaining = self.p2_walls_remaining
         state.p1_turn = self.p1_turn
+        state.time = self.time
         return state
 
     def get_current_player_pos(self) -> list[int]:
@@ -197,7 +205,8 @@ class GameState(AbstractGameState):
                     0] + AROUND_PLAYER - 1)
                          and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
                             1] + AROUND_PLAYER))
-                if (near1 or near2) and self.is_move_legal(move=move, check_bfs=check_bfs):
+                if (near1 and not self.p1_turn or near2 and self.p1_turn) and self.is_move_legal(move=move,
+                                                                                                 check_bfs=check_bfs):
                     res.append(move)
             elif self.is_move_legal(move=move, check_bfs=check_bfs):
                 res.append(move)
@@ -220,9 +229,10 @@ class GameState(AbstractGameState):
 
         # Switch the turn
         self.p1_turn = not self.p1_turn
+        self.time += 1
 
     def is_game_over(self) -> bool:
-        return self.p1_wins() or self.p2_wins()
+        return self.p1_wins() or self.p2_wins() or self.tie()
 
     def p1_wins(self) -> bool:
         return self.player1_pos[1] == BOARD_SIZE - 1 or (not self.p1_turn and not self.can_move())
@@ -230,9 +240,12 @@ class GameState(AbstractGameState):
     def p2_wins(self) -> bool:
         return self.player2_pos[1] == 0 or (self.p1_turn and not self.can_move())
 
+    def tie(self):
+        return self.time >= MAX_NUMBER_OF_TURNS
+
     def can_move(self) -> bool:
         for move in Movement:
-            if self.is_move_legal(move=move):
+            if self.is_move_legal(move=move, check_bfs=False):
                 return True
         return False
 
@@ -245,11 +258,22 @@ class GameState(AbstractGameState):
         """
         board = np.zeros((4, BOARD_SIZE, BOARD_SIZE), dtype=np.float32)
 
-        # Plane 0: Player 1 position
-        board[0, self.player1_pos[0], self.player1_pos[1]] = 1.0
+        if self.p1_turn:
+            current_pos = self.player1_pos
+            other_pos = self.player2_pos
+            current_walls_remaining = self.p1_walls_remaining
+            other_walls_remaining = self.p2_walls_remaining
+        else:
+            current_pos = self.player2_pos
+            other_pos = self.player1_pos
+            current_walls_remaining = self.p2_walls_remaining
+            other_walls_remaining = self.p1_walls_remaining
 
-        # Plane 1: Player 2 position
-        board[1, self.player2_pos[0], self.player2_pos[1]] = 1.0
+        # Plane 0: Current player position
+        board[0, current_pos[0], current_pos[1]] = 1.0
+
+        # Plane 1: Other player position
+        board[1, other_pos[0], other_pos[1]] = 1.0
 
         # Plane 2: Wall positions
         for wall in self.walls:
@@ -258,8 +282,7 @@ class GameState(AbstractGameState):
             elif wall.orientation == WallOrientation.VERTICAL:
                 board[3, wall.center_x, wall.center_y] = 1.0
 
-        # Flatten the board and append turn indicator
+        # Flatten the board and append walls
         flat_board = board.flatten()
-        turn_indicator = np.array([1.0 if self.p1_turn else 0.0], dtype=np.float32)
-
-        return np.concatenate((flat_board, turn_indicator))
+        walls = np.array([current_walls_remaining, other_walls_remaining], dtype=np.float32)
+        return np.concatenate((flat_board, walls))

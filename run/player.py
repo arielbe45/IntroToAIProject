@@ -34,11 +34,11 @@ class RandomQuoridorPlayer(AbstractQuoridorPlayer):
 
 
 class MinimaxPlayer(AbstractQuoridorPlayer):
-    def __init__(self, heuristic_evaluation, player, depth: int = 3, restrict: bool = False):
+    def __init__(self, heuristic_evaluation, depth: int = 3, restrict: bool = False, check_bfs: bool = False):
         self.depth = depth
-        self.player = player
         self.heuristic_evaluation = heuristic_evaluation
         self.restrict = restrict
+        self.check_bfs = check_bfs
 
     def get_next_move(self, state: GameState) -> Move:
         """Decides the best move using the minimax algorithm with alpha-beta pruning."""
@@ -48,9 +48,9 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
         beta = math.inf
 
         # Iterate over all legal moves
-        for move in state.get_legal_moves(check_bfs=False, restrict=self.restrict):
+        for move in state.get_legal_moves(check_bfs=self.check_bfs, restrict=self.restrict):
             new_state = state.get_new_state(move, check_legal=False)
-            move_value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False)
+            move_value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False, main_player=state.current_player)
 
             if max2(move_value, best_value) != best_value:
                 best_value = move_value
@@ -59,22 +59,28 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
             # Update alpha
             alpha = max2(alpha, best_value)
 
-        return best_move
+        if state.is_move_legal(move=best_move, check_bfs=True):
+            return best_move
+        return max(state.get_legal_moves(restrict=False, check_bfs=True),
+                   key=lambda move: self.heuristic_evaluation(state=state.get_new_state(move=move, check_legal=False),
+                                                              player=state.current_player))
 
-    def alphabeta(self, state: GameState, depth: int, alpha: float, beta: float, maximizing_player: bool) -> int:
+    def alphabeta(self, state: GameState, depth: int, alpha: float, beta: float, maximizing_player: bool,
+                  main_player: int) -> int:
         """Alpha-beta pruning algorithm with depth limit."""
         # Base case: return the heuristic value if depth is 0 or the game is over
         if depth == 0 or state.is_game_over():
             # avoid illegal states
             if not state.check_state_legal():
                 return None
-            return self.heuristic_evaluation(state, self.player)
+            return self.heuristic_evaluation(state, main_player)
 
         if maximizing_player:
             max_eval = -math.inf
-            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=False):
+            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=self.check_bfs):
                 new_state = state.get_new_state(move, check_legal=False)
-                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, False)
+                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, False,
+                                            main_player=main_player)
                 max_eval = max2(max_eval, eval_value)
                 alpha = max2(alpha, eval_value)
                 if beta <= alpha:
@@ -82,9 +88,10 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
             return max_eval
         else:
             min_eval = math.inf
-            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=False):
+            for move in state.get_legal_moves(restrict=self.restrict, check_bfs=self.check_bfs):
                 new_state = state.get_new_state(move, check_legal=False)
-                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, True)
+                eval_value = self.alphabeta(new_state, depth - 1, alpha, beta, True,
+                                            main_player=main_player)
                 min_eval = min2(min_eval, eval_value)
                 beta = min2(beta, eval_value)
                 if beta <= alpha:
@@ -93,10 +100,7 @@ class MinimaxPlayer(AbstractQuoridorPlayer):
 
     def heuristic_evaluation(self, state: GameState, player: int) -> float:
         """Evaluate the game state for the minimax algorithm."""
-        # This should be defined according to the rules of the game,
-        # and will typically evaluate the game state favorably for the player
-        # e.g., the distance to the goal or the number of walls remaining
-        raise NotImplementedError("Heuristic evaluation must be defined for specific game.")
+        raise NotImplementedError("Heuristic evaluation must be defined")
 
 
 # heuristic 1 - prioritizes states where you are closer and the opponent is further
@@ -105,18 +109,42 @@ def distance_to_end_heuristic(state: GameState, player) -> float:
         return float('inf') if player == 1 else -float('inf')
     elif state.p2_wins():
         return float('inf') if player == 2 else -float('inf')
+    elif state.tie():
+        return 0
 
     player1_distance = player1_dist_to_goal(state)
     player2_distance = player2_dist_to_goal(state)
 
-    if player2_distance == 0:
-        return math.inf if player == 2 else -math.inf
-    if player1_distance == 0:
-        return -math.inf if player == 2 else math.inf
-
     if player == 1:
         return player2_distance - player1_distance
     return player1_distance - player2_distance
+
+
+def normalized_distance_to_end_heuristic(state: GameState, player) -> float:
+    if state.p1_wins():
+        return 1 if player == 1 else 0
+    elif state.p2_wins():
+        return 1 if player == 2 else 0
+    elif state.tie():
+        return 0.5
+
+    player1_distance = player1_dist_to_goal(state)
+    player2_distance = player2_dist_to_goal(state)
+    c = 2
+
+    if player == 1:
+        dist = -1 / (player2_distance + c) + 1 / (player1_distance + c)
+    else:
+        dist = 1 / (player1_distance + c) - 1 / (player2_distance + c)
+
+    if not math.isfinite(dist):
+        return 0.5
+    return (dist + 1) / 2
+
+
+def dqn_normalized_distance_to_end_heuristic(state: GameState, player):
+    heuristic01 = normalized_distance_to_end_heuristic(state=state, player=player)
+    return heuristic01 * 2 - 1
 
 
 # heuristic 2 - Prioritizes states where you are closer to the winning sqaures
