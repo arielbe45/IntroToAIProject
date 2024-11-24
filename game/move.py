@@ -2,8 +2,9 @@ import enum
 from dataclasses import dataclass
 from typing import Tuple
 
-BOARD_SIZE = 9
-NUMBER_OF_WALLS = 3
+BOARD_SIZE = 5
+NUMBER_OF_WALLS = 6
+MAX_NUMBER_OF_TURNS = 50
 
 
 class WallOrientation(enum.Enum):
