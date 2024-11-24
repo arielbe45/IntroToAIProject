@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 BOARD_SIZE = 9
-NUMBER_OF_WALLS = 3
+NUMBER_OF_WALLS = 10
 
 
 class WallOrientation(enum.Enum):

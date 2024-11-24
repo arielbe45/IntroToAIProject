@@ -49,7 +49,8 @@ def competition(p1, p2):
 
 
 if __name__ == '__main__':
-    player_vs_ai(MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, player=2, depth=1))
+    player_vs_player()
+    # player_vs_ai(MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, player=2, depth=1))
     # player_vs_ai(
     #     MCTSPlayer(heurisric=distance_to_end_heuristic, player=2, depth=1, restrict_walls=True, num_simulations=10))
     # train_agent(MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, player=2, depth=0))
