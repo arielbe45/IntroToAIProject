@@ -135,7 +135,7 @@ def normalized_distance_to_end_heuristic(state: GameState, player) -> float:
     if player == 1:
         dist = -1 / (player2_distance + c) + 1 / (player1_distance + c)
     else:
-        dist = 1 / (player1_distance + c) - 1 / (player2_distance + c)
+        dist = 1 / (player2_distance + c) - 1 / (player1_distance + c)
 
     if not math.isfinite(dist):
         return 0.5
@@ -147,20 +147,24 @@ def dqn_normalized_distance_to_end_heuristic(state: GameState, player):
     return heuristic01 * 2 - 1
 
 
+def wall_difference_heuristic(state: GameState, player):
+    if player == 1:
+        return state.p1_walls_remaining - state.p2_walls_remaining
+    return state.p2_walls_remaining - state.p1_walls_remaining
+
+
 # heuristic 2 - Prioritizes states where you are closer to the winning sqaures
 def winning_heuristic(state: GameState, player) -> int:
-    player2_distance = player2_dist_to_goal(state)
     if player == 1:
-        return player2_distance
-    return -player2_distance
+        return -player1_dist_to_goal(state)
+    return -player2_dist_to_goal(state)
 
 
 # heuristic 3 - Prioritizes states where walls make it harder for the opponent to progress.
 def blocking_heuristic(state: GameState, player) -> int:
-    player1_distance = player1_dist_to_goal(state)
     if player == 1:
-        return -player1_distance
-    return player1_distance
+        return player2_dist_to_goal(state)
+    return player1_dist_to_goal(state)
 
 
 # heuristic 4 - Encourages the player to stay closer to the center of the board, improving flexibility.
@@ -190,7 +194,6 @@ def escape_route_heuristic(state: GameState, player) -> int:
 
 
 # heuristic 6 - Encourages the player to stay closer to the opponent for potential blocking opportunities.
-
 def proximity_heuristic(state: GameState, player) -> int:
     distance_between_players = abs(state.player1_pos[0] - state.player2_pos[0]) + abs(
         state.player1_pos[1] - state.player2_pos[1])

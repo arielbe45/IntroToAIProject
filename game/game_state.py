@@ -258,22 +258,11 @@ class GameState(AbstractGameState):
         """
         board = np.zeros((4, BOARD_SIZE, BOARD_SIZE), dtype=np.float32)
 
-        if self.p1_turn:
-            current_pos = self.player1_pos
-            other_pos = self.player2_pos
-            current_walls_remaining = self.p1_walls_remaining
-            other_walls_remaining = self.p2_walls_remaining
-        else:
-            current_pos = self.player2_pos
-            other_pos = self.player1_pos
-            current_walls_remaining = self.p2_walls_remaining
-            other_walls_remaining = self.p1_walls_remaining
+        # Plane 0: First player position
+        board[0, self.player1_pos[0], self.player1_pos[1]] = 1.0
 
-        # Plane 0: Current player position
-        board[0, current_pos[0], current_pos[1]] = 1.0
-
-        # Plane 1: Other player position
-        board[1, other_pos[0], other_pos[1]] = 1.0
+        # Plane 1: Second player position
+        board[0, self.player2_pos[0], self.player2_pos[1]] = 1.0
 
         # Plane 2: Wall positions
         for wall in self.walls:
@@ -284,5 +273,5 @@ class GameState(AbstractGameState):
 
         # Flatten the board and append walls
         flat_board = board.flatten()
-        walls = np.array([current_walls_remaining, other_walls_remaining], dtype=np.float32)
+        walls = np.array([self.p1_turn, self.p1_walls_remaining, self.p2_walls_remaining], dtype=np.float32)
         return np.concatenate((flat_board, walls))
