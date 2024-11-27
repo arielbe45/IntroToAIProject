@@ -43,6 +43,7 @@ class DeepQLearningPlayer(AbstractQuoridorPlayer):
         self.gamma = gamma
         self.memory = []  # Replay buffer
         self.batch_size = 64
+        print(self.state_size, self.action_size, "!")
         self.q_network = QNetwork(self.state_size, self.action_size)
         self.target_network = QNetwork(self.state_size, self.action_size)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)

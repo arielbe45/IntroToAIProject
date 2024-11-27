@@ -123,9 +123,11 @@ def main():
     # competition(heuristic_mcts, minimax3, games, 'heuristic mcts vs minimax3')
     # competition(unrestricted_mcts, minimax3, games, 'unrestricted mcts vs minimax3')
 
+    # player_vs_player()
+    # player_vs_ai(MinimaxPlayer(heuristic_evaluation=proximity_heuristic,depth=2, restrict=False))
     dqn_player = DeepQLearningPlayer(restrict=False)
-    train_agent(dqn_player=dqn_player, reward_heuristic=dqn_normalized_distance_to_end_heuristic,
-                opponent_model=minimax1)
+    # train_agent(dqn_player=dqn_player, reward_heuristic=dqn_normalized_distance_to_end_heuristic,
+    #             opponent_model=minimax1)
 
     # visualize_minimax_game_q_values(dqn_player=dqn_player)
     # train_agent(dqn_player=dqn_player, opponent_model=minimax1, total_episodes=100000000,
