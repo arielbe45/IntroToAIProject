@@ -1,8 +1,8 @@
 import enum
 from dataclasses import dataclass
 
-BOARD_SIZE = 5
-NUMBER_OF_WALLS = 6
+BOARD_SIZE = 9
+NUMBER_OF_WALLS = 20
 MAX_NUMBER_OF_TURNS = 50
 RESTRICT_WALLS_PLAYER_RADIUS = 1
 
