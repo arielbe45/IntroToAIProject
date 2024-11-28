@@ -208,7 +208,8 @@ def train_agent_single_episode(dqn_player: DeepQLearningPlayer, reward_heuristic
 
 def train_agent(dqn_player: DeepQLearningPlayer, opponent_model,
                 reward_heuristic: typing.Callable[[GameState, int], float],
-                total_episodes=10_000_000, update_target_every=100, log_interval=60, verbose=False):  # log_interval in seconds
+                total_episodes=10_000_000, update_target_every=100, log_interval=60,
+                verbose=False):  # log_interval in seconds
     print("training")
     opponent = opponent_model
 
@@ -239,9 +240,7 @@ def train_agent(dqn_player: DeepQLearningPlayer, opponent_model,
         if episode % update_target_every == 0:
             dqn_player.update_target_network()
 
-        # print(f"Batch {episode + 1}/{total_episodes} complete. Epsilon: {dqn_player.epsilon:.2f}")
         dqn_player.save_model("data/dqn_weights.pth")
-        # print("Model saved.")
 
         if loss is None:
             continue
@@ -329,7 +328,8 @@ def visualize_q_values(dqn_player, reward_heuristic, sample_states, gamma=0.996)
 
             next_state = state.copy()
             next_state.apply_move(move, check_legal=False)
-            heuristic_value = reward_heuristic(next_state, player=state.current_player)  # Compute heuristic for resulting state
+            heuristic_value = reward_heuristic(next_state,
+                                               player=state.current_player)  # Compute heuristic for resulting state
             heuristic_values.append(heuristic_value)
 
             # Compute the target Q-value (Double DQN target)

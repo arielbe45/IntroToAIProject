@@ -1,10 +1,10 @@
 import enum
 from dataclasses import dataclass
-from typing import Tuple
 
 BOARD_SIZE = 5
 NUMBER_OF_WALLS = 6
 MAX_NUMBER_OF_TURNS = 50
+RESTRICT_WALLS_PLAYER_RADIUS = 1
 
 
 class WallOrientation(enum.Enum):
@@ -47,5 +47,3 @@ ALL_MOVES = [Movement.MOVE_UP, Movement.MOVE_DOWN, Movement.MOVE_LEFT, Movement.
             [WallPlacement(orientation=orientation, center_x=center_x, center_y=center_y)
              for orientation in WallOrientation for center_x in range(BOARD_SIZE - 1) for center_y in
              range(BOARD_SIZE - 1)]
-
-AROUND_PLAYER = 1

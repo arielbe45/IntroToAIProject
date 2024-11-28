@@ -1,52 +1,10 @@
-import abc
 import typing
 
 import numpy as np
 
 from game.bfs import bfs_distance_to_goal
 from game.move import (WallPlacement, BOARD_SIZE, NUMBER_OF_WALLS, Move, Movement, WallOrientation, ALL_MOVES,
-                       apply_movement, AROUND_PLAYER, MAX_NUMBER_OF_TURNS)
-
-
-class AbstractGameState(abc.ABC):
-    def __init__(self):
-        self.p1_turn: bool = True
-
-    def get_new_state(self, move: Move, check_legal) -> 'AbstractGameState':
-        state = self.copy()
-        state.apply_move(move=move, check_legal=check_legal)
-        return state
-
-    @abc.abstractmethod
-    def copy(self) -> 'AbstractGameState':
-        pass
-
-    @abc.abstractmethod
-    def is_move_legal(self, move: Move) -> bool:
-        pass
-
-    @abc.abstractmethod
-    def p1_wins(self) -> bool:
-        pass
-
-    @abc.abstractmethod
-    def p2_wins(self) -> bool:
-        pass
-
-    def is_winner(self) -> bool:
-        return self.p1_wins() and not self.p1_turn or self.p2_wins() and self.p1_turn
-
-    @abc.abstractmethod
-    def is_game_over(self) -> bool:
-        pass
-
-    @abc.abstractmethod
-    def get_legal_moves(self) -> list[Move]:
-        pass
-
-    @abc.abstractmethod
-    def apply_move(self, move: Move, check_legal: bool = True) -> None:
-        pass
+                       apply_movement, RESTRICT_WALLS_PLAYER_RADIUS, MAX_NUMBER_OF_TURNS)
 
 
 def player1_dist_to_goal(state: 'GameState'):
@@ -59,7 +17,7 @@ def player2_dist_to_goal(state: 'GameState'):
                                 check_goal=lambda pos: pos[1] == 0)
 
 
-class GameState(AbstractGameState):
+class GameState:
     def __init__(self):
         super().__init__()
         self.walls: list[WallPlacement] = []
@@ -69,10 +27,19 @@ class GameState(AbstractGameState):
         self.p1_walls_remaining = NUMBER_OF_WALLS
         self.p2_walls_remaining = NUMBER_OF_WALLS
         self.time = 0
+        self.p1_turn = True
+
+    def get_new_state(self, move: Move, check_legal) -> 'GameState':
+        state = self.copy()
+        state.apply_move(move=move, check_legal=check_legal)
+        return state
 
     @property
     def current_player(self):
         return 1 if self.p1_turn else 2
+
+    def is_winner(self) -> bool:
+        return self.p1_wins() and not self.p1_turn or self.p2_wins() and self.p1_turn
 
     def copy(self):
         state = GameState()
@@ -100,11 +67,6 @@ class GameState(AbstractGameState):
             # Check if the move collides with walls
             if self.check_wall_collision(pos=pos, move=move):
                 continue
-
-            # REMOVED: fixed bug
-            # Check if the new position is already occupied by a player
-            # if new_pos == self.player1_pos or new_pos == self.player2_pos:
-            #     continue  # Tile is occupied
 
             free_tiles.append(tuple(new_pos))
         return free_tiles
@@ -197,14 +159,14 @@ class GameState(AbstractGameState):
         res = []
         for move in ALL_MOVES:
             if isinstance(move, WallPlacement):
-                near1 = ((self.player1_pos[0] - AROUND_PLAYER <= move.center_x <= self.player1_pos[
-                    0] + AROUND_PLAYER - 1)
-                         and (self.player1_pos[1] - AROUND_PLAYER <= move.center_y <= self.player1_pos[
-                            1] + AROUND_PLAYER))
-                near2 = ((self.player2_pos[0] - AROUND_PLAYER <= move.center_x <= self.player2_pos[
-                    0] + AROUND_PLAYER - 1)
-                         and (self.player2_pos[1] - AROUND_PLAYER <= move.center_y <= self.player2_pos[
-                            1] + AROUND_PLAYER))
+                near1 = ((self.player1_pos[0] - RESTRICT_WALLS_PLAYER_RADIUS <= move.center_x <= self.player1_pos[
+                    0] + RESTRICT_WALLS_PLAYER_RADIUS - 1)
+                         and (self.player1_pos[1] - RESTRICT_WALLS_PLAYER_RADIUS <= move.center_y <= self.player1_pos[
+                            1] + RESTRICT_WALLS_PLAYER_RADIUS))
+                near2 = ((self.player2_pos[0] - RESTRICT_WALLS_PLAYER_RADIUS <= move.center_x <= self.player2_pos[
+                    0] + RESTRICT_WALLS_PLAYER_RADIUS - 1)
+                         and (self.player2_pos[1] - RESTRICT_WALLS_PLAYER_RADIUS <= move.center_y <= self.player2_pos[
+                            1] + RESTRICT_WALLS_PLAYER_RADIUS))
                 if (near1 and not self.p1_turn or near2 and self.p1_turn) and self.is_move_legal(move=move,
                                                                                                  check_bfs=check_bfs):
                     res.append(move)

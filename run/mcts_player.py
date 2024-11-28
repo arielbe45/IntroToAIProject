@@ -1,3 +1,4 @@
+import logging
 import math
 import random
 from typing import Optional
@@ -5,7 +6,6 @@ from typing import Optional
 from game.game_state import GameState
 from game.move import Move, ALL_MOVES
 from run.player import AbstractQuoridorPlayer
-import logging
 
 
 class Node:

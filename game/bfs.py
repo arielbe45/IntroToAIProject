@@ -31,7 +31,7 @@ def bfs_shortest_paths(start_node: Node, get_free_neighbors: typing.Callable[[No
 
 
 def bfs_distance_to_goal(start_node: Node, get_free_neighbors: typing.Callable[[Node], typing.List[Node]],
-                              check_goal: typing.Callable[[Node], bool]) -> int:
+                         check_goal: typing.Callable[[Node], bool]) -> int:
     # Initialize a dictionary to store the distance to goal for each node
     distance_from_start = {start_node: 0}
 
@@ -62,7 +62,7 @@ def bfs_distance_to_goal(start_node: Node, get_free_neighbors: typing.Callable[[
 
 
 def bfs_best_move(start_node: Node, get_legal_movements: typing.Callable[[Node], typing.Dict[typing.Any, Node]],
-                              check_goal: typing.Callable[[Node], bool]):
+                  check_goal: typing.Callable[[Node], bool]):
     # Initialize a dictionary to store the distance to goal for each node
     distance_from_start = {start_node: 0}
 
@@ -92,4 +92,3 @@ def bfs_best_move(start_node: Node, get_legal_movements: typing.Callable[[Node],
                 queue.append((original_move, neighbor))
 
     raise Exception
-

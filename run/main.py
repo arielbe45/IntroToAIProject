@@ -1,13 +1,52 @@
 import time
+from multiprocessing import Pool
 
 from tqdm import tqdm
-from multiprocessing import Pool
 
 from run.graphics import Graphics
 from run.human_player import HumanPlayer
 from run.mcts_player import MCTSPlayer
 from run.player import *
-from run.rl import DeepQLearningPlayer, train_agent, visualize_minimax_game_q_values, plot_loss_graph
+from run.rl import DeepQLearningPlayer, plot_loss_graph, train_agent
+
+
+def heuristic(*args, **kwargs):
+    # count number of calls to function
+    heuristic.count += 1
+    return normalized_distance_to_end_heuristic(*args, **kwargs)
+
+
+# All AI players
+heuristic_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=True,
+                            num_simulations=10000, rollout_exploration_param=0.8)
+unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=False, selection_exploration_param=0.2,
+                               num_simulations=20000, rollout_exploration_param=1)
+mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=True,
+                  num_simulations=10000, rollout_exploration_param=1)
+deep_mcts = MCTSPlayer(heurisric=heuristic, depth=20, restrict_walls=True,
+                       num_simulations=20000, rollout_exploration_param=1)
+
+minimax3 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=3, restrict=False,
+                         check_bfs=True)
+minimax2 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=2, restrict=False,
+                         check_bfs=True)
+minimax1 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=1, restrict=False,
+                         check_bfs=True)
+dqn_player = DeepQLearningPlayer(restrict=False)
+
+all_heuristics = {
+    'distance_to_end_heuristic': distance_to_end_heuristic,
+    'wall_difference_heuristic': wall_difference_heuristic,
+    'winning_heuristic': winning_heuristic,
+    'blocking_heuristic': blocking_heuristic,
+    'central_position_heuristic': central_position_heuristic,
+    'escape_route_heuristic': escape_route_heuristic,
+    'proximity_heuristic': proximity_heuristic,
+    'edge_avoidance_heuristic': edge_avoidance_heuristic,
+    'manhattan_dist': manhattan_dist,
+    'combined_heuristic': combined_heuristic,
+    'normalized_distance_to_end_heuristic': normalized_distance_to_end_heuristic
+}
 
 
 def game(p1: AbstractQuoridorPlayer, p2: AbstractQuoridorPlayer, graphics: Graphics = None):
@@ -81,64 +120,36 @@ def competition(p1, p2, games=100, title: str = '?', verbose=False):
     print("################")
 
 
-def heuristic(*args, **kwargs):
-    heuristic.count += 1
-    return normalized_distance_to_end_heuristic(*args, **kwargs)
+def compare_mcts():
+    games = 100
+    competition(mcts, minimax1, games, 'mcts vs minimax1')
+    competition(deep_mcts, minimax1, games, 'deep mcts vs minimax1')
+    competition(heuristic_mcts, minimax1, games, 'heuristic mcts vs minimax1')
+    competition(unrestricted_mcts, minimax1, games, 'unrestricted mcts vs minimax1')
 
+    competition(mcts, minimax2, games, 'mcts vs minimax2')
+    competition(deep_mcts, minimax2, games, 'deep mcts vs minimax2')
+    competition(heuristic_mcts, minimax2, games, 'heuristic mcts vs minimax2')
+    competition(unrestricted_mcts, minimax2, games, 'unrestricted mcts vs minimax2')
 
-heuristic_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=True,
-                            num_simulations=10000, rollout_exploration_param=0.8)
-# unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=False, selection_exploration_param=0.2,
-#                                num_simulations=15000, rollout_exploration_param=1)
-# unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=False, selection_exploration_param=0.2,
-#                                num_simulations=5000, rollout_exploration_param=1)
-# unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=False, selection_exploration_param=0.3,
-#                                num_simulations=20000, rollout_exploration_param=1)
-# unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=5, restrict_walls=False, selection_exploration_param=0.3,
-#                                num_simulations=10000, rollout_exploration_param=1)
-unrestricted_mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=False, selection_exploration_param=0.2,
-                               num_simulations=20000, rollout_exploration_param=1)
-mcts = MCTSPlayer(heurisric=heuristic, depth=10, restrict_walls=True,
-                  num_simulations=10000, rollout_exploration_param=1)
-deep_mcts = MCTSPlayer(heurisric=heuristic, depth=20, restrict_walls=True,
-                       num_simulations=20000, rollout_exploration_param=1)
-
-restricted_minimax = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=5, restrict=True,
-                                   check_bfs=True)
-minimax3 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=3, restrict=False,
-                         check_bfs=True)
-minimax2 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=2, restrict=False,
-                         check_bfs=True)
-minimax1 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=1, restrict=False,
-                         check_bfs=True)
-
-heuristics = {
-    # 'distance_to_end_heuristic': distance_to_end_heuristic,
-    # 'wall_difference_heuristic': wall_difference_heuristic,
-    'winning_heuristic': winning_heuristic,
-    'blocking_heuristic': blocking_heuristic,
-    # 'central_position_heuristic': central_position_heuristic,
-    # 'escape_route_heuristic': escape_route_heuristic,
-    # 'proximity_heuristic': proximity_heuristic,
-    # 'edge_avoidance_heuristic': edge_avoidance_heuristic,
-    # 'manhattan_dist': manhattan_dist,
-    # 'combined_heuristic': combined_heuristic,
-    # 'normalized_distance_to_end_heuristic': normalized_distance_to_end_heuristic
-}
+    competition(mcts, minimax3, games, 'mcts vs minimax3')
+    competition(deep_mcts, minimax3, games, 'deep mcts vs minimax3')
+    competition(heuristic_mcts, minimax3, games, 'heuristic mcts vs minimax3')
+    competition(unrestricted_mcts, minimax3, games, 'unrestricted mcts vs minimax3')
 
 
 # Function to wrap competition to work with Pool
-def run_competition(args):
+def run_competition_helper(args):
     p1, p2, title = args
     competition(p1, p2, title=title)
 
 
-def minimax_competition():
+def compare_heuristic_performance():
     tasks = []  # List to store all tasks to be run in parallel
 
     for i in range(1, 4):
         p1 = MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=i, restrict=False)
-        for name, heuristic in heuristics.items():
+        for name, heuristic in all_heuristics.items():
             p2 = MinimaxPlayer(heuristic_evaluation=heuristic, depth=i, restrict=False)
             title = f'distance_to_end_heuristic vs {name} (depth {i})'
             # Append the arguments for each competition to the task list
@@ -146,11 +157,10 @@ def minimax_competition():
 
     # Create a pool of 10 workers and distribute tasks among them
     with Pool(processes=10) as pool:
-        pool.map(run_competition, tasks)  # Map tasks to the worker processes
+        pool.map(run_competition_helper, tasks)  # Map tasks to the worker processes
 
 
-
-def run_minimax_time_check(args):
+def single_heuristic_runtime_check(args):
     p1, p2, title = args
     games = 1
     times = []
@@ -174,64 +184,26 @@ def run_minimax_time_check(args):
     print("################")
 
 
-def minimax_time_check():
-    tasks = []  # List to store all tasks to be run in parallel
-
-    for i in range(3, 6):
-        for name, heuristic in heuristics.items():
+def compare_heuristic_runtime():
+    for i in range(1, 4):
+        for name, heuristic in all_heuristics.items():
             p1 = p2 = MinimaxPlayer(heuristic_evaluation=heuristic, depth=i, restrict=False)
-            title = f'distance_to_end_heuristic vs {name} (depth {i})'
+            title = f'{name} (depth {i})'
             # Append the arguments for each competition to the task list
-            run_minimax_time_check([p1, p2, title])
-
-
-def competitions():
-    games = 100
-    # competition(mcts, minimax1, games, 'mcts vs minimax1')
-    # competition(deep_mcts, minimax1, games, 'deep mcts vs minimax1')
-    # competition(heuristic_mcts, minimax1, games, 'heuristic mcts vs minimax1')
-    competition(unrestricted_mcts, minimax1, games, 'unrestricted mcts vs minimax1', verbose=True)
-
-    competition(mcts, minimax2, games, 'mcts vs minimax2')
-    competition(deep_mcts, minimax2, games, 'deep mcts vs minimax2')
-    competition(heuristic_mcts, minimax2, games, 'heuristic mcts vs minimax2')
-    competition(unrestricted_mcts, minimax2, games, 'unrestricted mcts vs minimax2')
-
-    competition(mcts, minimax3, games, 'mcts vs minimax3')
-    competition(deep_mcts, minimax3, games, 'deep mcts vs minimax3')
-    competition(heuristic_mcts, minimax3, games, 'heuristic mcts vs minimax3')
-    competition(unrestricted_mcts, minimax3, games, 'unrestricted mcts vs minimax3')
+            single_heuristic_runtime_check([p1, p2, title])
 
 
 def rl_training():
-    dqn_player = DeepQLearningPlayer(restrict=False)
-    # train_agent(dqn_player=dqn_player, reward_heuristic=dqn_normalized_distance_to_end_heuristic,
-    #             opponent_model=minimax2, verbose=False)
+    # IMPORTANT: make sure that the board size is set to 5x5 and the number of walls to 6 in player.py
+    train_agent(dqn_player=dqn_player, reward_heuristic=dqn_normalized_distance_to_end_heuristic,
+                opponent_model=minimax2, verbose=False)
     plot_loss_graph()
     player_vs_ai(dqn_player)
-    # display_ai_vs_ai(dqn_player, minimax2)
-
-    # graphics = Graphics()
-    # p1, p2 = HumanPlayer(graphics), dqn_player
-    # game(p1=p2, p2=p1, graphics=graphics)
-
-    visualize_minimax_game_q_values(dqn_player=dqn_player, reward_heuristic=dqn_normalized_distance_to_end_heuristic)
-    # train_agent(dqn_player=dqn_player, opponent_model=minimax1, total_episodes=100000000,
-    #             reward_heuristic=dqn_normalized_distance_to_end_heuristic)
 
 
 def main():
-    # competitions()
-    minimax_time_check()
+    player_vs_ai(minimax2)
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.DEBUG)
-    # main()
-    # competition(p1=MinimaxPlayer(heuristic_evaluation=distance_to_end_heuristic, depth=3, restrict=False),
-    #             p2=MinimaxPlayer(heuristic_evaluation=manhattan_dist, depth=3, restrict=False), games=100, verbose=True)
-    # run_minimax_time_check()
-    # competitions()
-    # player_vs_ai(minimax2)
-    # minimax_competition()
-    rl_training()
+    main()

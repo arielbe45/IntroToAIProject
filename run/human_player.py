@@ -1,7 +1,7 @@
 from game.game_state import GameState
 from game.move import Move
-from run.player import AbstractQuoridorPlayer
 from run.graphics import Graphics
+from run.player import AbstractQuoridorPlayer
 
 
 class HumanPlayer(AbstractQuoridorPlayer):
